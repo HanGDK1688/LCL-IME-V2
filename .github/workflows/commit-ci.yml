@@ -12,21 +12,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true   # Trime .gitmodules 必须拉
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      # 删除 android-actions/setup-android@v3，直接用预装 SDK
       - name: Install NDK & CMake
         run: |
+          export ANDROID_HOME=$ANDROID_HOME
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager "ndk;25.2.9519653" "cmake;3.22.1"
-          echo "ndk.dir=$ANDROID_HOME/ndk/25.2.9519653" >> local.properties
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
       - name: Build Debug APK
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: LCL-IME-Debug
